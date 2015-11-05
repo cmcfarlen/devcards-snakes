@@ -175,7 +175,8 @@
 (defn main []
   ;; conditionally start the app based on wether the #main-app-area
   ;; node is on the page
-  (if-let [node (.getElementById js/document "main-app-area")]
+  (when-let [node (.getElementById js/document "main-app-area")]
+    (dc/start-devcard-ui!)
     (js/React.render (sab/html [:div "This is working"]) node)))
 
 (main)

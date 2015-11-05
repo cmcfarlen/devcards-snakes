@@ -41,7 +41,14 @@
                         :compiler {:main       "snakes.core"
                                    :asset-path "js/compiled/out"
                                    :output-to  "resources/public/js/compiled/snakes.js"
-                                   :optimizations :advanced}}]}
+                                   :optimizations :advanced}}
+                       {:id "hosted"
+                        :source-paths ["src"]
+                        :compiler {:main "snakes.core"
+                                   :devcards true
+                                   :asset-path "js/compiled/out"
+                                   :output-to "resources/public/js/compiled/snakes.js"
+                                   :optimizations :advanced }}]}
 
   :figwheel { :css-dirs ["resources/public/css"]
               :nrepl-port 7888
