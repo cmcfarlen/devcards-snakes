@@ -5,6 +5,8 @@
    [cljs.test :as t :refer  [report] :include-macros true]
    [cljs.core.async :as async :refer [<! >!]]
    [sablono.core :as sab :include-macros true])
+   [sablono.core :as sab :include-macros true]
+   [devcards.core :as dc])
   (:require-macros
    [devcards.core :as dc :refer [defcard deftest defcard-om]]
    [cljs.test :refer [is testing async]]
