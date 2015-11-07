@@ -2,13 +2,13 @@
 
 @font-face {
     font-family: 'Glyphicons Regular';
-    src: url(/glyphicons-regular.woff2)
+    src: url(../glyphicons-regular.woff2)
 }
 
 .board {
     background-color: black;
     padding: .3em;
-    margin: 0px;
+    margin: 0px auto;
     display: table;
 }
 
@@ -63,6 +63,11 @@
 
 .grid {
     overflow: auto;
+}
+
+.game {
+    width: 75%;
+    margin: 0 auto;
 }
 
 

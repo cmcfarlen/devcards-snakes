@@ -1,12 +1,14 @@
 (ns snakes.core
   (:require
    [om.core :as om :include-macros true]
+   [goog.events :as events]
    [cljs.test :as t :refer  [report] :include-macros true]
+   [cljs.core.async :as async :refer [<! >!]]
    [sablono.core :as sab :include-macros true])
   (:require-macros
    [devcards.core :as dc :refer [defcard deftest defcard-om]]
    [cljs.test :refer [is testing async]]
-   ))
+   [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
 
@@ -171,13 +173,130 @@
   {:inspect-data true :history true}
   )
 
+;; with keyboard input
+
+(defn listen [e type]
+  "Listen for the event type and put the event on a channel.  If the channel closes, unlisten to the event"
+  (let [c (async/chan)
+        evkey (atom nil)
+        lf (fn [e]
+             (async/put! c e #(when-not %
+                                (events/unlistenByKey @evkey)))) ]
+    (reset! evkey (events/listen e type lf))
+    c))
+
+
+(defcard-om keyboard-input
+  "Use vi move keys to move the guy around (arrows don't work here)."
+  (fn [data owner]
+    (reify
+      om/IDidMount
+      (did-mount [_]
+        (let [c (listen js/window "keyup")]
+          (om/set-state! owner :chan c)
+          (go
+            (loop []
+              (when-let [e (<! c)]
+                (case (.-keyCode e)
+                  74
+                  (om/transact! data #(step-dir % [0 1]))
+
+                  75
+                  (om/transact! data #(step-dir % [0 -1]))
+
+                  72
+                  (om/transact! data #(step-dir % [-1 0]))
+
+                  76
+                  (om/transact! data #(step-dir % [1 0]))
+
+                  (.log js/console (str "key: " (.-keyCode e)))
+                  )
+                (recur))))))
+      om/IWillUnmount
+      (will-unmount [_]
+        (if-let [c (om/get-state owner :chan)]
+          (async/close! c)))
+      om/IRender
+      (render [_]
+        (sab/html
+         [:div
+          (render-board @data)
+          [:div [:button {:on-click (fn [] (om/update! data (add-food (create-board 10))))} "reset"]]
+          ]))))
+  (add-food (create-board 10)))
+
+;; timed game
+
+(defn timed-repeat-chan
+  "return a channel that receives v every rate milliseconds"
+  [v rate]
+  (let [c (async/chan)]
+    (go
+      (loop []
+        (<! (async/timeout rate))
+        (when (>! c v)
+          (recur))))
+    c))
+
+(defn snake-game
+  [size]
+  (fn [data owner]
+    (reify
+      om/IDidMount
+      (did-mount [_]
+        (let [c (listen js/window "keyup")
+              t (timed-repeat-chan :step 200)]
+          (om/set-state! owner :keys c)
+          (om/set-state! owner :steps t)
+          (go
+            (loop []
+              (when-let [e (<! c)]
+                (case (.-keyCode e)
+                  (74 40)
+                  (om/update! data :dir [0 1])
+
+                  (75 38)
+                  (om/update! data :dir [0 -1])
+
+                  (72 37)
+                  (om/update! data :dir [-1 0])
+
+                  (76 39)
+                  (om/update! data :dir [1 0])
+
+                  82
+                  (om/update! data (add-food (create-board size)))
+
+                  true #_(.log js/console (str "key: " (.-keyCode e))))
+                (recur))))
+          (go
+            (loop []
+              (when-let [e (<! t)]
+                (om/transact! data step)
+                (recur))))))
+      om/IWillUnmount
+      (will-unmount [_]
+        (doseq [k [:keys :steps]]
+          (if-let [c (om/get-state owner k)]
+            (async/close! c))))
+      om/IRender
+      (render [_]
+        (sab/html
+         [:div.game
+          (render-board @data)])))))
+
+(defcard-om timed-game
+  (snake-game 10)
+  (add-food (create-board 10)))
+
+(defonce game-state (atom (add-food (create-board 15))))
 
 (defn main []
   ;; conditionally start the app based on wether the #main-app-area
   ;; node is on the page
   (when-let [node (.getElementById js/document "main-app-area")]
-    (dc/start-devcard-ui!)
-    (js/React.render (sab/html [:div "This is working"]) node)))
+    (om/root (snake-game 15) game-state {:target node})))
 
 (main)
 
