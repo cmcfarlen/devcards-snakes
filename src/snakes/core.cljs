@@ -4,7 +4,6 @@
    [goog.events :as events]
    [cljs.test :as t :refer  [report] :include-macros true]
    [cljs.core.async :as async :refer [<! >!]]
-   [sablono.core :as sab :include-macros true])
    [sablono.core :as sab :include-macros true]
    [devcards.core :as dc])
   (:require-macros
@@ -298,6 +297,7 @@
   ;; conditionally start the app based on wether the #main-app-area
   ;; node is on the page
   (when-let [node (.getElementById js/document "main-app-area")]
+    (dc/start-devcard-ui!)
     (om/root (snake-game 15) game-state {:target node})))
 
 (main)
